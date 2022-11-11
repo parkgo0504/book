@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.smhrd.repository.BoardMapper">
+  
+  <sql id="search">
+    <if test="type=='writer'">
+       where writer like concat('%',#{keyword},'%')
+    </if>  
+    <if test="type=='title'">
+       where title like concat('%',#{keyword},'%')
+    </if>
+    <if test="type=='content'">
+       where content like concat('%',#{keyword},'%')
+    </if>
+  </sql>  
+  
+  <!-- board table 모든 게시물을 가져오는 SQL -->
+  <select id="getList" resultType="kr.smhrd.entity.Board" parameterType="kr.smhrd.entity.Criteria">
+     select * from reply 
+     <include refid="search"/>
+     order by bgroup desc, bseq asc
+     limit #{pageStart},#{perPageNum}
+  </select>
+  <!-- 원글(부모글) -->
+  <insert id="register" parameterType="kr.smhrd.entity.Board">
+     insert into reply(memId,title,content,writer, bgroup, bseq, blevel)
+     select #{memId},#{title},#{content},#{writer}, IFNULL(max(bgroup)+1, 0),0,0 from reply
+  </insert>
+  
+  <select id="get" resultType="kr.smhrd.entity.Board" parameterType="int">
+    select * from reply where idx=#{idx}
+  </select>
+  <delete id="remove" parameterType="int">
+   	update reply set bdelete=1 where idx=#{idx}
+  </delete>
+  <update id="update" parameterType="kr.smhrd.entity.Board">
+    update reply set title=#{title},content=#{content} where idx=#{idx} 
+  </update>
+  <update id="countUpdate">
+    update reply set count=count+1 where idx=#{idx} 
+  </update> 
+  <select id="login" resultType="kr.smhrd.entity.Member"
+                           parameterType="kr.smhrd.entity.Member">
+     select * from member 
+     where memId=#{memId} and memPwd=#{memPwd}
+  </select>
+  <insert id="replyInsert" parameterType="kr.smhrd.entity.Board">
+     insert into reply(memId,title,content,writer, bgroup, bseq, blevel)
+     value(#{memId},#{title},#{content},#{writer},#{bgroup},#{bseq},#{blevel})
+  </insert>
+  <update id="replySeqUpdate" parameterType="kr.smhrd.entity.Board">
+    update reply set bseq=bseq+1 where bgroup=#{bgroup} and bseq>#{bseq}  
+  </update>
+  <select id="totalCount" resultType="int" parameterType="kr.smhrd.entity.Criteria">
+  	select count(*) from reply
+  	<include refid="search"/>
+  </select>
+</mapper>
